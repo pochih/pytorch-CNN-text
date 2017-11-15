@@ -28,8 +28,8 @@ class WordVec(object):
   def get_wv(self):
     if self.wv_type == 'self':
       if not os.path.exists('model/word_vector.bin'):
-        pos = codecs.open("MovieReview/rt-polaritydata/rt-polarity.pos", "r", encoding='utf-8', errors='ignore').read()
-        neg = codecs.open("MovieReview/rt-polaritydata/rt-polarity.neg", "r", encoding='utf-8', errors='ignore').read()
+        pos = codecs.open("rt-polaritydata/rt-polarity.pos", "r", encoding='utf-8', errors='ignore').read()
+        neg = codecs.open("rt-polaritydata/rt-polarity.neg", "r", encoding='utf-8', errors='ignore').read()
         pos_list = pos.split("\n")[:-1]
         neg_list = neg.split("\n")[:-1]
 
@@ -38,7 +38,7 @@ class WordVec(object):
         tmp_file = 'all_words.txt'
         with codecs.open(tmp_file, 'w', encoding='utf-8', errors='ignore') as f:
           f.write("\n".join(word_corpus))
-        corpus = word2vec.Text8Corpus("MovieReview/rt-polaritydata/all_words.txt")
+        corpus = word2vec.Text8Corpus("rt-polaritydata/all_words.txt")
         word_vector = word2vec.Word2Vec(corpus, size=100)
         word_vector.wv.save_word2vec_format(u"model/word_vector.bin", binary=True)
         os.remove(tmp_file)
