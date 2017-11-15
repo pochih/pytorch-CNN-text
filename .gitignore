@@ -1,2 +1,6 @@
 **/.DS_Store
-
+src/__pycache__/
+MovieReview/
+model/GoogleNews-vectors-negative300.bin
+model/glove.6B/
+model/glove-6B.100d.pkl
