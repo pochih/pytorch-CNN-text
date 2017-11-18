@@ -59,9 +59,11 @@ class PolarityDataset(Dataset):
   def __getitem__(self, idx):
     sent = self.data[idx][0]
     sent = np.array([self._get_wv(word) for word in sent.split()]).T  # get every word's vector in given sentence
+    sent = torch.from_numpy(sent).float()
     cls = self.data[idx][1]
     target = np.zeros(2)
     target[cls] = 1
+    target = torch.from_numpy(target).float()
     sample = {'X': sent, 'Y': target}
     return sample
 
