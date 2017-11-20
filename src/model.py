@@ -58,9 +58,39 @@ class CNNSentanceClassifier(nn.Module):
     x3 = m3(x3).view(x.size()[0], self.kernels)  # shape=(N, self.kernels)
 
     x_cat = torch.cat((x1, x2, x3), 1)  # shape=(N, self.kernels*3)
-    out   = self.fc(self.drop(x_cat))   # shape=(N, self.n_class)
+    out   = self.fc(self.drop(x_cat))  # shape=(N, self.n_class)
 
     return out
+
+
+class Visualizor(CNNSentanceClassifier):
+
+  def __init__(self, state_dict, args):
+    super().__init__(args)
+    self.load_state_dict(state_dict)
+
+  def forward(self, x):
+    x1 = self.conv1(x)  # shape=(N, self.kernels, L')
+    x2 = self.conv2(x)  # shape=(N, self.kernels, L'')
+    x3 = self.conv3(x)  # shape=(N, self.kernels, L''')
+
+    m1 = nn.MaxPool1d(x1.size()[-1])  # kernel size = L'
+    m2 = nn.MaxPool1d(x2.size()[-1])  # kernel size = L''
+    m3 = nn.MaxPool1d(x3.size()[-1])  # kernel size = L'''
+
+    x1 = m1(x1).view(x.size()[0], self.kernels)  # shape=(N, self.kernels)
+    x2 = m2(x2).view(x.size()[0], self.kernels)  # shape=(N, self.kernels)
+    x3 = m3(x3).view(x.size()[0], self.kernels)  # shape=(N, self.kernels)
+
+    x_cat = torch.cat((x1, x2, x3), 1)  # shape=(N, self.kernels*3)
+    fc   = self.fc(x_cat)  # shape=(N, self.n_class)
+
+    return {
+      'conv1': x1,
+      'conv2': x2,
+      'conv3': x3,
+      'fc'   : fc
+    }
 
 
 if __name__ == "__main__":
