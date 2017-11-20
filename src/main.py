@@ -15,6 +15,7 @@ from torch.utils.data import DataLoader
 
 from polarity_loader import PolarityDataset, PolarityLoader
 from model import CNNSentanceClassifier as CNNSC
+from model import Visualizor
 
 parser = argparse.ArgumentParser(description='PyTorch CNN Sentence Classification')
 # training configs
