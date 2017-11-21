@@ -68,7 +68,7 @@ def val(epoch):
   acc = correct / len(val_data)
   print("Validating epoch {}, val_loss {}, acc {:.4f}({}/{})".format(epoch, val_loss, acc, correct, len(val_data)))
 
-def visualize(x, layer, filter_idx, lr=1e-1, iters=100, verbose=False):
+def visualize(x, layer, filter_idx, lr=1e-2, iters=20, verbose=False):
   visualizor.eval()
   assert layer + '.weight' in visualizor.state_dict().keys(), 'layer\'s weight not in model'
 
@@ -85,9 +85,25 @@ def visualize(x, layer, filter_idx, lr=1e-1, iters=100, verbose=False):
     grad = inputs.grad.data.cpu().numpy()
     x += lr * grad  # gradient ascent
     if iter % 10 == 0 and verbose:
-      print('iter {}, score {}'.format(iter, score.sum()))
+      print('iter {}, score {}, grad.mean {}'.format(iter, score.sum(), grad.mean()))
 
   return x, grad
+
+def saliency(x, target, verbose=False):
+  cnn_model.eval()
+
+  inputs = Parameter(torch.from_numpy(x).float(), requires_grad=True)
+  if inputs.grad is not None:
+    inputs.grad.data.zero_()
+  output = cnn_model(inputs)
+  loss = criterion(output, target)
+  loss.backward(retain_graph=True)
+  grad = inputs.grad.data.cpu().numpy()
+  if verbose:
+    print('grad.mean {}'.format(grad.mean()))
+
+  return grad
+
 
 if __name__ == '__main__':
   def format_visualization(x_grad, layer):
@@ -96,19 +112,23 @@ if __name__ == '__main__':
     x_min = np.argmin(x_grad)
     print('layer {}\nmax word: {}, min word: {}'.format(layer, sample['text'].split()[x_max], sample['text'].split()[x_min]))
 
+  # test 5 samples
   cls = ['pos', 'neg']
   for i in range(5):
     sample = train_data[i]
     print("cls: {}, text: {}".format(cls[np.argmax(sample['Y'].numpy())], sample['text']))
     x = np.expand_dims(sample['X'].numpy(), axis=0)
-    _, x_grad = visualize(x, 'conv1', 10, iters=20)
-    format_visualization(x_grad, 'conv1_10')
-    _, x_grad = visualize(x, 'conv1', 20, iters=20)
-    format_visualization(x_grad, 'conv1_20')
-    _, x_grad = visualize(x, 'conv1', 30, iters=20)
-    format_visualization(x_grad, 'conv1_30')
-    _, x_grad = visualize(x, 'fc', 0, iters=20)
+    sample['Y'] = torch.from_numpy(np.expand_dims(sample['Y'].numpy(), axis=0))
+    target = Variable(sample['Y'])
+    _, x_grad = visualize(x, 'conv1', 0)
+    format_visualization(x_grad, 'conv1_0')
+    _, x_grad = visualize(x, 'conv2', 0)
+    format_visualization(x_grad, 'conv2_0')
+    _, x_grad = visualize(x, 'conv3', 0)
+    format_visualization(x_grad, 'conv3_0')
+    _, x_grad = visualize(x, 'fc', 0)
     format_visualization(x_grad, 'fc_0')
-    _, x_grad = visualize(x, 'fc', 1, iters=20)
+    _, x_grad = visualize(x, 'fc', 1)
     format_visualization(x_grad, 'fc_1')
-
+    x_grad = saliency(x, target)
+    format_visualization(x_grad, 'fc')
