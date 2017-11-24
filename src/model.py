@@ -25,6 +25,7 @@ class CNNSentanceClassifier(nn.Module):
     self.conv2 = nn.Conv1d(self.wv_dims, self.kernels, 4)
     self.conv3 = nn.Conv1d(self.wv_dims, self.kernels, 5)
 
+    self.selu = nn.SELU(True)
     self.drop = nn.Dropout(p=args.dropout, inplace=True)
     self.fc = nn.Linear(self.kernels*3, self.n_class)
 
@@ -45,9 +46,9 @@ class CNNSentanceClassifier(nn.Module):
                 N equals to batch size
                 n_cls is the class num we want to discriminate
     '''
-    x1 = self.conv1(x)  # shape=(N, self.kernels, L')
-    x2 = self.conv2(x)  # shape=(N, self.kernels, L'')
-    x3 = self.conv3(x)  # shape=(N, self.kernels, L''')
+    x1 = self.selu(self.conv1(x))  # shape=(N, self.kernels, L')
+    x2 = self.selu(self.conv2(x))  # shape=(N, self.kernels, L'')
+    x3 = self.selu(self.conv3(x))  # shape=(N, self.kernels, L''')
 
     m1 = nn.MaxPool1d(x1.size()[-1])  # kernel size = L'
     m2 = nn.MaxPool1d(x2.size()[-1])  # kernel size = L''
@@ -70,9 +71,9 @@ class Visualizor(CNNSentanceClassifier):
     self.load_state_dict(state_dict)
 
   def forward(self, x):
-    x1 = self.conv1(x)  # shape=(N, self.kernels, L')
-    x2 = self.conv2(x)  # shape=(N, self.kernels, L'')
-    x3 = self.conv3(x)  # shape=(N, self.kernels, L''')
+    x1 = self.selu(self.conv1(x))  # shape=(N, self.kernels, L')
+    x2 = self.selu(self.conv2(x))  # shape=(N, self.kernels, L'')
+    x3 = self.selu(self.conv3(x))  # shape=(N, self.kernels, L''')
 
     m1 = nn.MaxPool1d(x1.size()[-1])  # kernel size = L'
     m2 = nn.MaxPool1d(x2.size()[-1])  # kernel size = L''
