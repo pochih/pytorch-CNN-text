@@ -51,12 +51,12 @@ class WordVec(object):
       word_vector = KeyedVectors.load_word2vec_format('wordvec/GoogleNews-vectors-negative300.bin', binary=True).wv
       dims = 300
     elif self.wv_type == 'glove':
-      if not os.path.exists('wordvec/glove-6B.100d.pkl'):
-        glove = open("wordvec/glove.6B/glove.6B.100d.txt", "r").read().split("\n")[:-1]
+      if not os.path.exists('wordvec/glove-6B.300d.pkl'):
+        glove = open("wordvec/glove.6B/glove.6B.300d.txt", "r").read().split("\n")[:-1]
         word_vector = {line.split()[0]: np.array(line.split()[1:]).astype(np.float32) for line in glove}
-        pickle.dump(word_vector, open('wordvec/glove-6B.100d.pkl', "wb", True))
-      word_vector = pickle.load(open('wordvec/glove-6B.100d.pkl', "rb", True))
-      dims = 100
+        pickle.dump(word_vector, open('wordvec/glove-6B.300d.pkl', "wb", True))
+      word_vector = pickle.load(open('wordvec/glove-6B.300d.pkl', "rb", True))
+      dims = 300
     return word_vector, dims
 
   def get_dim(self):
