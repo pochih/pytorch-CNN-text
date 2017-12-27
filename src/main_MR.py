@@ -91,6 +91,8 @@ if args.cuda:
     num_gpu = list(range(torch.cuda.device_count()))
     cnn_model = nn.DataParallel(cnn_model, device_ids=num_gpu)
   print("Finish cuda loading, time elapsed {}".format(time.time() - ts))
+else:
+  cnn_model = cnn_model.cpu()
 
 # define loss & optimizer
 criterion = nn.CrossEntropyLoss()

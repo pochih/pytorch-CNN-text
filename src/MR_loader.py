@@ -150,17 +150,21 @@ class MovieReviewDataset(Dataset):
 
 class MRLoader:
 
-  def __init__(self, dataset):
+  def __init__(self, dataset, phase):
     self.dataset = dataset
+    self.phase = phase
     self.data_len = len(self.dataset)
     self.index_list = self.shuffle_index()
     self.curr_index = 0
 
   def shuffle_index(self):
-    return random.sample(range(self.data_len), self.data_len)
+    if self.phase == 'train':
+      return random.sample(range(self.data_len), self.data_len)
+    else:
+      return list(range(self.data_len))
 
   def get_batch_num(self, batch_size):
-    return math.floor(self.data_len / batch_size)
+    return int(math.floor(self.data_len / batch_size))
 
   def next_batch(self, batch_size):
     batch_index = self._gen_batch_index(batch_size)
@@ -188,16 +192,15 @@ class MRLoader:
       'Y': np.array(Y)
     }
     for idx, x in enumerate(X):
-      if len(x) < max_len:
-        pad = np.zeros(max_len-len(x))
-        ret[idx] = np.append(x, pad)  # pad with zero
+      pad = np.zeros(max_len-len(x))
+      ret['X'][idx] = np.append(x, pad)  # pad with zero
     for key in ret.keys():
       ret[key] = torch.from_numpy(ret[key]).long()
     return ret
 
 
 if __name__ == "__main__":
-  train_data = MovieReviewDataset(phase='train', wv_type='google')
+  train_data = MovieReviewDataset(phase='train', wv_type='glove')
   embed = train_data.get_dict_wv()
   print('oov {}, |V| {}'.format(train_data.oov, embed.shape[0]))
 
@@ -208,7 +211,7 @@ if __name__ == "__main__":
     print("sample %d," % i, sample['X'].shape, sample['Y'].shape)
 
   # test dataloader
-  train_loader = MRLoader(dataset=train_data)
+  train_loader = MRLoader(dataset=train_data, phase='train')
   n_batch = train_loader.get_batch_num(batch_size=batch_size)
   for nb in range(n_batch):
     batch = train_loader.next_batch(batch_size=batch_size)
