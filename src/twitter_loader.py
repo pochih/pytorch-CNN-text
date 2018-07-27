@@ -12,7 +12,7 @@ import os
 
 import torch
 from torch.utils.data import Dataset
-from wordvec import WordVec
+from wordvec import TwitterWordVec
 
 
 def clean_str(string):
@@ -49,7 +49,7 @@ class TwitterDataset(Dataset):
     self.val_rate = val_rate
     self.phase = phase
     self.data, self.word_to_idx = self.get_data(self.phase)
-    self.wordvec = WordVec(wv_type)
+    self.wordvec = TwitterWordVec(wv_type)
 
   def __len__(self):
     return len(self.data)
@@ -170,7 +170,7 @@ class TwitterLoader:
       return list(range(self.data_len))
 
   def get_batch_num(self, batch_size):
-    return math.floor(self.data_len / batch_size)
+    return int(math.floor(self.data_len / batch_size))
 
   def next_batch(self, batch_size):
     batch_index = self._gen_batch_index(batch_size)
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     print("sample %d," % i, sample['X'].shape, sample['Y'].shape)
 
   # test dataloader
-  train_loader = TwitterLoader(dataset=train_data, shuffle=False)
+  train_loader = TwitterLoader(dataset=train_data, phase='train')
   n_batch = train_loader.get_batch_num(batch_size=batch_size)
   for nb in range(n_batch):
     batch = train_loader.next_batch(batch_size=batch_size)

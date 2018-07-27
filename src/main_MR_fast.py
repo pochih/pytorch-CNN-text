@@ -11,7 +11,6 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.autograd import Variable
-from torch.utils.data import DataLoader
 
 from MR_loader import MovieReviewDataset, MRLoader
 from embed_model import SC_Embedding
@@ -22,10 +21,10 @@ parser.add_argument('--optimizer', type=str, default='Adam',
                     help='training optimizer (default: Adam)')
 parser.add_argument('--batch-size', type=int, default=50,
                     help='input batch size for training (default: 50)')
-parser.add_argument('--test-batch-size', type=int, default=100,
-                    help='input batch size for testing (default: 100)')
-parser.add_argument('--bs-increase-interval', type=int, default=300,
-                    help='how many epochs to wait before increase batch_size (default: 300)')
+parser.add_argument('--test-batch-size', type=int, default=500,
+                    help='input batch size for testing (default: 500)')
+parser.add_argument('--bs-increase-interval', type=int, default=50,
+                    help='how many epochs to wait before increase batch_size (default: 50)')
 parser.add_argument('--bs-increase-rate', type=float, default=1,
                     help='batch_size increase rate (default: 1)')
 parser.add_argument('--n-class', type=int, default=2,
@@ -71,9 +70,9 @@ for dir in [result_dir, model_dir]:
 
 # load data
 train_data   = MovieReviewDataset(phase='train', wv_type=args.wv_type)
-train_loader = DataLoader(train_data, batch_size=1, shuffle=True, num_workers=4)
+train_loader = MRLoader(dataset=train_data, phase='train')
 val_data     = MovieReviewDataset(phase='val', wv_type=args.wv_type)
-val_loader   = DataLoader(val_data, batch_size=1, shuffle=False, num_workers=4)
+val_loader   = MRLoader(dataset=val_data, phase='val')
 args.wv_dims = train_data.wordvec.get_dim()  # get word embedding size
 
 # get model
@@ -91,8 +90,6 @@ if args.cuda:
     num_gpu = list(range(torch.cuda.device_count()))
     cnn_model = nn.DataParallel(cnn_model, device_ids=num_gpu)
   print("Finish cuda loading, time elapsed {}".format(time.time() - ts))
-else:
-  cnn_model = cnn_model.cpu()
 
 # define loss & optimizer
 criterion = nn.CrossEntropyLoss()
@@ -106,10 +103,10 @@ elif args.optimizer == 'RMSprop':
 
 def train(epoch):
   cnn_model.train()
-  train_loss = 0.
-  iter = 0
-  for idx, batch in enumerate(train_loader):
+  n_batch = train_loader.get_batch_num(batch_size=args.batch_size)
+  for nb in range(n_batch):
     optimizer.zero_grad()
+    batch = train_loader.next_batch(batch_size=args.batch_size)
     if args.cuda:
       batch['X'] = batch['X'].cuda()
       batch['Y'] = batch['Y'].cuda()
@@ -117,32 +114,28 @@ def train(epoch):
     inputs, target = Variable(batch['X']), Variable(batch['Y'])
     output = cnn_model(inputs)
     loss = criterion(output, target)
-
-    if idx % args.batch_size == (args.batch_size - 1):
-      iter += 1
-      loss.data[0] += train_loss
-      loss.data[0] /= args.batch_size
-      loss.backward()
-      optimizer.step()
-      if iter % args.log_interval == 0:
-        print("Training epoch {}, iter {}, loss {}".format(epoch, iter, loss.data[0]))
-      train_loss = 0.
-    else:
-      train_loss += loss.data[0]
+    loss.backward()
+    optimizer.step()
+    if nb % args.log_interval == 0:
+      print("Training epoch {}, batch {}, loss {}".format(epoch, nb, loss.data[0]))
 
 
 def val(epoch):
   cnn_model.eval()
   val_loss = 0.
   correct = 0
-  for idx, batch in enumerate(val_loader):
+  n_batch = val_loader.get_batch_num(batch_size=5)
+  for _ in range(n_batch):
+    optimizer.zero_grad()
+    batch = val_loader.next_batch(batch_size=5)
     if args.cuda:
       batch['X'] = batch['X'].cuda()
       batch['Y'] = batch['Y'].cuda()
     batch['Y'] = batch['Y'].view(-1)
     inputs, target = Variable(batch['X']), Variable(batch['Y'])
     output = cnn_model(inputs)
-    val_loss += criterion(output, target).data[0]
+    loss = nn.functional.cross_entropy(output, target, size_average=False)
+    val_loss += loss.data[0]
     pred = np.argmax(output.data.cpu().numpy(), axis=1)
     target = target.data.cpu().numpy()
     correct += (pred == target).sum()
@@ -153,7 +146,8 @@ def val(epoch):
     torch.save(cnn_model, os.path.join(model_dir, params))
   accs[epoch] = acc
   np.save(os.path.join(result_dir, params), accs)
-  print("Validating epoch {}, val_loss {}, acc {:.4f}({}/{})".format(epoch, val_loss, acc, correct, len(val_data)))
+  print("Validating epoch {}, val_loss {}, acc {:.4f}({}/{}), best {}".format(epoch, val_loss, acc, correct, len(val_data), np.max(accs)))
+
 
 
 if __name__ == "__main__":
