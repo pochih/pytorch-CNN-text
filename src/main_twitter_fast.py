@@ -169,7 +169,7 @@ def infer():
       predicts = np.append(predicts, pred)
     print('len pred', len(predicts))
     for idx in range(len(predicts)):
-      out.write('{},{}\n'.format(idx, predicts[idx]))
+      out.write('{},{}\n'.format(idx, int(predicts[idx])))
 
 
 if __name__ == "__main__":
